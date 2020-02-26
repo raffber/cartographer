@@ -1,5 +1,4 @@
 
-use object::{File as ObjFile, CoffFile, Object};
 use std::fs::File;
 use std::io::{Read, empty};
 use gimli::{SectionId, Error, ReaderOffsetId, EndianReader, LittleEndian};
@@ -7,6 +6,10 @@ use std::borrow::Cow;
 use std::sync::Arc;
 use std::ops::Deref;
 use gimli::Location::Bytes;
+use crate::coff::CoffFile;
+
+mod coff;
+mod parse;
 
 #[derive(Clone, Debug)]
 struct ByteVec(Arc<Vec<u8>>);
@@ -43,14 +46,9 @@ fn empty_reader() -> Reader {
     Reader::new(ByteVec::new(), LittleEndian::default())
 }
 
-fn get_section_data<'data, 'file : 'data, T: Object<'data, 'file>>(obj: &'file T, id: SectionId) -> Result<Reader, &'static str> {
-    Ok(obj.section_data_by_name(id.name())
-        .map(|x| {
-            let x = x.iter().map(|x| *x).collect::<Vec<u8>>();
-            EndianReader::new(x.into(), LittleEndian::default())
-        })
-        .unwrap_or_else(empty_reader)
-    )
+fn get_section_data(obj: &CoffFile, id: SectionId) -> Result<Reader, &'static str> {
+    println!("{}", id.name());
+    Ok(empty_reader())
 }
 
 fn main() {
@@ -58,6 +56,7 @@ fn main() {
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();
     let obj = CoffFile::parse(&data).unwrap();
+    println!("{}", obj.header().optional_header_size());
 
     let dwarf = Dwarf::load(
         |id| get_section_data(&obj, id),
