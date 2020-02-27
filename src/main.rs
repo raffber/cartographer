@@ -47,8 +47,11 @@ fn empty_reader() -> Reader {
 }
 
 fn get_section_data(obj: &CoffFile, id: SectionId) -> Result<Reader, &'static str> {
-    println!("{}", id.name());
-    Ok(empty_reader())
+    let ret = obj
+        .get_section(id.name())
+        .map(|x| Reader::new(x.data().into(), LittleEndian::default()) )
+        .unwrap_or_else(empty_reader);
+    Ok(ret)
 }
 
 fn main() {
@@ -56,7 +59,6 @@ fn main() {
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();
     let obj = CoffFile::parse(&data).unwrap();
-    println!("{}", obj.header().optional_header_size());
 
     let dwarf = Dwarf::load(
         |id| get_section_data(&obj, id),
