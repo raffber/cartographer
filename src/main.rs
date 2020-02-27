@@ -9,10 +9,12 @@ use std::sync::Arc;
 use std::ops::Deref;
 use crate::coff::CoffFile;
 use crate::mapper::Mapper;
+use crate::mapfile::Mapfile;
 
 mod coff;
 mod parse;
 mod mapper;
+mod mapfile;
 
 #[derive(Clone, Debug)]
 pub struct ByteVec(Arc<Vec<u8>>);
@@ -57,7 +59,7 @@ fn get_section_data(obj: &CoffFile, id: SectionId) -> Result<Reader, &'static st
 }
 
 fn main() {
-    let mut file = File::open("f1_btl.out").unwrap();
+    let mut file = File::open("f1_app.out").unwrap();
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();
     let obj = CoffFile::parse(&data).unwrap();
@@ -73,11 +75,14 @@ fn main() {
         let abbrev = dwarf.abbreviations(&unit).unwrap();
         let mut tree = unit.entries_tree(&abbrev, None).unwrap();
         let root = tree.root().unwrap();
-        let _ = mapper.process_tree(root);
+        let _ = mapper.process_tree(root, 0);
     }
 
     println!("Structs found: {}", mapper.structs.len());
     println!("Typedefs found: {}", mapper.typedefs.len());
+    println!("Globals found: {}", mapper.globals.len());
+
+    let mapfile = Mapfile::new(mapper);
 
     println!("Hello, world!");
 }
