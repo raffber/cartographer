@@ -68,15 +68,15 @@ impl<'data> SectionHeader<'data> {
         }
     }
 
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
-    fn section_start_addr(&self) -> usize {
+    pub fn section_start_addr(&self) -> usize {
         read_u32(self.data, 20) as usize
     }
 
-    fn section_length(&self) -> usize {
+    pub fn section_length(&self) -> usize {
         read_u32(self.data, 16) as usize
     }
 }
@@ -181,7 +181,6 @@ impl<'data> CoffFile<'data> {
                 continue;
             }
             let end_addr = start_addr + header.section_length();
-            println!("{} to {}", start_addr, end_addr);
             let raw_data = &data[start_addr..end_addr];
             let section = Section::parse(raw_data, header.clone());
             sections.push(section);
