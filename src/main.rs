@@ -75,8 +75,9 @@ fn main() {
         let abbrev = dwarf.abbreviations(&unit).unwrap();
         let mut tree = unit.entries_tree(&abbrev, None).unwrap();
         let root = tree.root().unwrap();
-        let _ = mapper.process_tree(root, 0);
+        let _ = mapper.process_tree(root, 0, &unit);
     }
+    mapper.collapse_structs();
 
     println!("Structs found: {}", mapper.structs.len());
     println!("Typedefs found: {}", mapper.typedefs.len());
