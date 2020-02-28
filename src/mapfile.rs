@@ -1,5 +1,4 @@
 use crate::mapper::{Mapper, StructMember};
-use gimli::Operation::EntryValue;
 
 use serde::{Deserialize, Serialize};
 
@@ -47,7 +46,6 @@ impl Mapfile {
             entry.addr = Some(global.address);
 
             if let Some(strct) = mapper.resolve_struct(global.type_offset) {
-                strct.name.as_ref().map(|name| println!("{}", name) );
                 let mut members = Vec::new();
                 for member in &strct.members {
                     members.push(Self::member_to_entry(member));

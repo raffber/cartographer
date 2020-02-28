@@ -77,18 +77,12 @@ fn main() {
         let root = tree.root().unwrap();
         let _ = mapper.process_tree(root, 0, &unit);
     }
-    mapper.collapse_structs();
-
-    println!("Structs found: {}", mapper.structs.len());
-    println!("Typedefs found: {}", mapper.typedefs.len());
-    println!("Globals found: {}", mapper.globals.len());
+    mapper.postprocess();
 
     let mapfile = Mapfile::new(mapper);
-
     let serialized = serde_json::to_string_pretty(&mapfile.entries).unwrap();
-
     let mut outfile = File::create("map.json").unwrap();
-    outfile.write_all(serialized.as_bytes());
+    outfile.write_all(serialized.as_bytes()).unwrap();
 }
 
 #[cfg(test)]

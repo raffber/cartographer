@@ -1,6 +1,6 @@
 use gimli::constants::{DW_AT_name, DW_AT_type, DW_TAG_member, DW_TAG_typedef, DW_AT_location,
                        DW_TAG_structure_type, DW_AT_data_member_location, DW_TAG_variable};
-use gimli::{AttributeValue, UnitOffset, Encoding, Location, CompilationUnitHeader};
+use gimli::{AttributeValue, Encoding, Location, CompilationUnitHeader};
 use crate::Reader;
 use std::collections::HashMap;
 use gimli::EvaluationResult::RequiresRelocatedAddress;
@@ -52,25 +52,22 @@ impl Mapper {
         }
     }
 
-    pub fn resolve_struct(&self, offset: usize) ->  Option<Structure> {
-        // TODO: remove...
-        self.resolve_struct_recursive(offset, None)
-    }
-
-    fn resolve_struct_recursive(&self, offset: usize, name: Option<&str>) -> Option<Structure> {
-        // TODO: remove...
-        if let Some(td) = self.typedefs.get(&offset) {
-            self.resolve_struct_recursive(td.type_offset, Some(&td.name))
-        } else if let Some(strct) = self.structs.get(&offset) {
-            let mut ret = strct.clone();
-            ret.name = name.map(|x| x.to_string());
-            Some(ret)
-        } else {
-            None
+    pub fn process_tree(&mut self, node: gimli::EntriesTreeNode<Reader>, level: u32, unit: &CompilationUnitHeader<Reader>) -> gimli::Result<()> {
+        match node.entry().tag() {
+            DW_TAG_structure_type => self.process_struct(node, unit),
+            DW_TAG_typedef => self.process_typedef(node, unit),
+            DW_TAG_variable => self.process_variable(node, level),
+            _ => {
+                let mut children = node.children();
+                while let Some(child) = children.next()? {
+                    self.process_tree(child, level+1, unit)?;
+                }
+                Ok(())
+            }
         }
     }
 
-    pub fn collapse_structs(&mut self) {
+    pub fn postprocess(&mut self) {
         for (addr, td) in &self.typedefs {
             if let Some(strct) = self.structs.get_mut(&td.type_offset) {
                 strct.name = Some(td.name.clone());
@@ -91,6 +88,10 @@ impl Mapper {
                 global.fields = x.members.clone();
             }
         }
+    }
+
+    pub fn resolve_struct(&self, offset: usize) ->  Option<Structure> {
+        self.structs.get(&offset).map(|x| x.clone())
     }
 
     fn build_struct(&mut self, new_strcts: &mut HashMap<usize, Structure>, strct_addr: usize) -> Vec<StructMember> {
@@ -191,10 +192,6 @@ impl Mapper {
             };
             if let Some(AttributeValue::DebugInfoRef(offset)) = node.entry().attr_value(DW_AT_type)? {
                 let td_offset = node.entry().offset().to_debug_info_offset(unit).0;
-                if &name == "app_sysctrl_t" {
-                    println!("app_sysctrl_t: 0x{:X} to 0x{:X}", td_offset, offset.0);
-                }
-
                 let td = Typedef {
                     name,
                     type_offset: offset.0
@@ -241,20 +238,5 @@ impl Mapper {
             fields: vec![]
         });
         Ok(())
-    }
-
-    pub fn process_tree(&mut self, node: gimli::EntriesTreeNode<Reader>, level: u32, unit: &CompilationUnitHeader<Reader>) -> gimli::Result<()> {
-        match node.entry().tag() {
-            DW_TAG_structure_type => self.process_struct(node, unit),
-            DW_TAG_typedef => self.process_typedef(node, unit),
-            DW_TAG_variable => self.process_variable(node, level),
-            _ => {
-                let mut children = node.children();
-                while let Some(child) = children.next()? {
-                    self.process_tree(child, level+1, unit)?;
-                }
-                Ok(())
-            }
-        }
     }
 }
