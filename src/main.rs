@@ -3,7 +3,7 @@
 
 
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use gimli::{SectionId, EndianReader, LittleEndian};
 use std::sync::Arc;
 use std::ops::Deref;
@@ -85,7 +85,10 @@ fn main() {
 
     let mapfile = Mapfile::new(mapper);
 
-    println!("Hello, world!");
+    let serialized = serde_json::to_string_pretty(&mapfile.entries).unwrap();
+
+    let mut outfile = File::create("map.json").unwrap();
+    outfile.write_all(serialized.as_bytes());
 }
 
 #[cfg(test)]

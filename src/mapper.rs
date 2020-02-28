@@ -23,7 +23,7 @@ pub struct StructMember {
 
 #[derive(Debug, Clone)]
 pub struct Variable {
-    pub location: u64,
+    pub address: u64,
     pub name: String,
     pub type_offset: usize,
     pub fields: Vec<StructMember>,
@@ -72,7 +72,7 @@ impl Mapper {
 
     pub fn collapse_structs(&mut self) {
         for (addr, td) in &self.typedefs {
-            if let Some(strct) = self.structs.get_mut(addr) {
+            if let Some(strct) = self.structs.get_mut(&td.type_offset) {
                 strct.name = Some(td.name.clone());
                 let strct = strct.clone();
                 self.structs.insert(*addr, strct);
@@ -87,9 +87,6 @@ impl Mapper {
         self.structs = new_strcts;
 
         for global in &mut self.globals {
-            if &global.name == "sysctrl" {
-                println!("{:X}", global.type_offset);
-            }
             if let Some(x) = self.structs.get(&global.type_offset) {
                 global.fields = x.members.clone();
             }
@@ -98,8 +95,7 @@ impl Mapper {
 
     fn build_struct(&mut self, new_strcts: &mut HashMap<usize, Structure>, strct_addr: usize) -> Vec<StructMember> {
         let mut ret = Vec::new();
-        let strct = self.structs.get(&strct_addr).unwrap();
-        let mut new_strct = strct.clone();
+        let mut strct = self.structs.get(&strct_addr).unwrap().clone();
         for member in &strct.members {
             ret.push(member.clone());
         }
@@ -110,8 +106,8 @@ impl Mapper {
             }
         }
 
-        new_strct.members = ret.clone();
-        new_strcts.insert(strct_addr, new_strct);
+        strct.members = ret.clone();
+        new_strcts.insert(strct_addr, strct);
         ret
     }
 
@@ -239,7 +235,7 @@ impl Mapper {
         };
 
         self.globals.push(Variable {
-            location,
+            address: location,
             name,
             type_offset: type_offset.0,
             fields: vec![]
