@@ -10,6 +10,7 @@ use std::ops::Deref;
 use crate::coff::CoffFile;
 use crate::mapper::Mapper;
 use crate::mapfile::Mapfile;
+use std::path::PathBuf;
 
 mod coff;
 mod parse;
@@ -58,15 +59,16 @@ fn get_section_data(obj: &CoffFile, id: SectionId) -> Result<Reader, &'static st
     Ok(ret)
 }
 
-fn main() {
-    let mut file = File::open("f1_app.out").unwrap();
+
+fn produce_map(input_file: PathBuf, output_file: PathBuf) {
+    let mut file = File::open(input_file).expect("Cannot open input file");
     let mut data = Vec::new();
-    file.read_to_end(&mut data).unwrap();
+    file.read_to_end(&mut data).expect("Cannot read from output file");
     let obj = CoffFile::parse(&data).unwrap();
 
     let dwarf = Dwarf::load(
         |id| get_section_data(&obj, id),
-            |_| Ok(empty_reader())
+        |_| Ok(empty_reader())
     ).expect("Cannot find dwarf section in file");
 
     let mut mapper = Mapper::new(dwarf.units().next().unwrap().unwrap().encoding());
@@ -81,16 +83,10 @@ fn main() {
 
     let mapfile = Mapfile::new(mapper);
     let serialized = serde_json::to_string_pretty(&mapfile.entries).unwrap();
-    let mut outfile = File::create("map.json").unwrap();
-    outfile.write_all(serialized.as_bytes()).unwrap();
+    let mut outfile = File::create(output_file).expect("Cannot create output file");
+    outfile.write_all(serialized.as_bytes()).expect("Cannot write to output file");
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_hello() {
-
-    }
+fn main() {
+    produce_map("f1_app.out".into(), "map.json".into());
 }
