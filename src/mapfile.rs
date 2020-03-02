@@ -18,6 +18,7 @@ pub struct Entry {
     name: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "type")]
     typ: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -44,6 +45,9 @@ impl Mapfile {
             let mut entry = Entry::new();
             entry.name = Some(global.name.clone());
             entry.addr = Some(global.address);
+            entry.typ = mapper.base_types
+                .get(&global.type_offset)
+                .map(|x| x.clone());
 
             if let Some(strct) = mapper.resolve_struct(global.type_offset) {
                 let mut members = Vec::new();
