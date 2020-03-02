@@ -1,5 +1,5 @@
 use gimli::constants::{DW_AT_name, DW_AT_type, DW_TAG_member, DW_TAG_typedef, DW_AT_location,
-                       DW_TAG_structure_type, DW_AT_data_member_location, DW_TAG_variable};
+                       DW_TAG_structure_type, DW_AT_data_member_location, DW_TAG_variable, DW_TAG_base_type};
 use gimli::{AttributeValue, Encoding, Location, CompilationUnitHeader};
 use crate::Reader;
 use std::collections::HashMap;
@@ -40,6 +40,7 @@ pub struct Mapper {
     pub typedefs: HashMap<usize, Typedef>,
     pub structs: HashMap<usize, Structure>,
     pub globals: Vec<Variable>,
+    pub base_types: HashMap<usize, String>,
 }
 
 impl Mapper {
@@ -48,7 +49,8 @@ impl Mapper {
             encoding,
             typedefs: HashMap::new(),
             structs: HashMap::new(),
-            globals: vec![]
+            globals: vec![],
+            base_types: Default::default()
         }
     }
 
@@ -57,6 +59,7 @@ impl Mapper {
             DW_TAG_structure_type => self.process_struct(node, unit),
             DW_TAG_typedef => self.process_typedef(node, unit),
             DW_TAG_variable => self.process_variable(node, level),
+            DW_TAG_base_type => self.process_type(node, unit),
             _ => {
                 let mut children = node.children();
                 while let Some(child) = children.next()? {
@@ -73,6 +76,11 @@ impl Mapper {
                 strct.name = Some(td.name.clone());
                 let strct = strct.clone();
                 self.structs.insert(*addr, strct);
+            }
+
+            if let Some(base_type) = self.base_types.get(&td.type_offset) {
+                let base_type = base_type.clone();
+                self.base_types.insert(*addr, base_type);
             }
         }
 
@@ -110,6 +118,17 @@ impl Mapper {
         strct.members = ret.clone();
         new_strcts.insert(strct_addr, strct);
         ret
+    }
+
+    fn process_type(&mut self, node: gimli::EntriesTreeNode<Reader>, unit: &CompilationUnitHeader<Reader>) -> gimli::Result<()> {
+        let type_offset = node.entry().offset().to_debug_info_offset(unit).0;
+        let name = if let Some(AttributeValue::String(name)) = node.entry().attr_value(DW_AT_name)? {
+            std::str::from_utf8(&name).unwrap().to_string()
+        } else {
+            return Ok(());
+        };
+        self.base_types.insert(type_offset, name);
+        Ok(())
     }
 
     fn process_struct_member(&mut self, node: gimli::EntriesTreeNode<Reader>) -> gimli::Result<Option<StructMember>> {

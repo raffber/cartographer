@@ -48,7 +48,7 @@ impl Mapfile {
             if let Some(strct) = mapper.resolve_struct(global.type_offset) {
                 let mut members = Vec::new();
                 for member in &strct.members {
-                    members.push(Self::member_to_entry(member));
+                    members.push(Self::member_to_entry(&mapper, member));
                 }
                 entry.fields = members;
             }
@@ -59,16 +59,18 @@ impl Mapfile {
     }
 
 
-    fn member_to_entry(member: &StructMember) -> Entry {
+    fn member_to_entry(mapper: &Mapper, member: &StructMember) -> Entry {
         let fields = member.fields.iter()
-            .map(|x| Self::member_to_entry(x))
+            .map(|x| Self::member_to_entry(mapper,x))
             .collect();
-
+        let typ = mapper.base_types
+            .get(&member.type_offset)
+            .map(|x| x.clone());
         Entry {
             addr: None,
             fields,
             name: Some(member.name.clone()),
-            typ: None,
+            typ,
             offset: Some(member.member_offset),
         }
     }
