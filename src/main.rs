@@ -11,6 +11,7 @@ use crate::coff::CoffFile;
 use crate::mapper::Mapper;
 use crate::mapfile::Mapfile;
 use std::path::PathBuf;
+use clap::{App, Arg};
 
 mod coff;
 mod parse;
@@ -60,7 +61,7 @@ fn get_section_data(obj: &CoffFile, id: SectionId) -> Result<Reader, &'static st
 }
 
 
-fn produce_map(input_file: PathBuf, output_file: PathBuf) {
+fn produce_map(input_file: PathBuf, output_file: PathBuf, pretty: bool) {
     let mut file = File::open(input_file).expect("Cannot open input file");
     let mut data = Vec::new();
     file.read_to_end(&mut data).expect("Cannot read from output file");
@@ -82,11 +83,46 @@ fn produce_map(input_file: PathBuf, output_file: PathBuf) {
     mapper.postprocess();
 
     let mapfile = Mapfile::new(mapper);
-    let serialized = serde_json::to_string_pretty(&mapfile.entries).unwrap();
+    let serialized = if pretty {
+        serde_json::to_string_pretty(&mapfile.entries).unwrap()
+    } else {
+        serde_json::to_string(&mapfile.entries).unwrap()
+    };
     let mut outfile = File::create(output_file).expect("Cannot create output file");
     outfile.write_all(serialized.as_bytes()).expect("Cannot write to output file");
 }
 
 fn main() {
-    produce_map("f1_app.out".into(), "map.json".into());
+    let matches = App::new("cartographer - Produce map files like its 1999")
+        .version("0.1")
+        .author("Raphael Bernhard <beraphae@gmail.com>")
+        .about("Extract DWARF information from executables and creates map files")
+        .arg(Arg::with_name("input-file")
+            .short("i")
+            .long("input")
+            .value_name("INPUT_FILE")
+            .required(true)
+            .help("Input file binary file to be processed."))
+        .arg(Arg::with_name("output-file")
+            .short("o")
+            .long("output")
+            .value_name("OUTPUT_FILE")
+            .help("Output map files to be written."))
+        .arg(Arg::with_name("pretty")
+            .short("p")
+            .long("pretty")
+            .help("Defines whether the resulting json file should be pretty printed."))
+        .get_matches();
+
+    let input_file = matches.value_of("input-file").expect("No input file given");
+    let output_file = matches.value_of("output-file")
+        .map(|x| x.to_string())
+        .unwrap_or_else(|| {
+            let mut ret = input_file.to_string();
+            ret.push_str(".json");
+            ret
+        });
+    let pretty = matches.is_present("pretty");
+
+    produce_map(input_file.into(), output_file.into(), pretty);
 }
