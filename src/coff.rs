@@ -1,7 +1,14 @@
+//! This module provides an implementation to parse TI-COFF files
+//! 
+//! The file format is specified in http://www.ti.com/lit/pdf/spraao8
+
+
+
 use crate::parse::{read_u32, read_u16};
 
 type Result<T> = std::result::Result<T, String>;
 
+/// Header section of the whole COFF file
 #[derive(Clone)]
 pub struct Header<'data> {
     data: &'data [u8],
@@ -36,7 +43,6 @@ struct SectionHeaders<'data> {
 }
 
 impl<'data> SectionHeaders<'data> {
-
     fn parse(data: &'data [u8], strings: &StringTable<'data> ,num_sections: usize) -> SectionHeaders<'data> {
         assert_eq!(data.len(), num_sections * CoffFile::SECTION_HEADER_LENGTH);
         let mut headers = Vec::new();
@@ -49,7 +55,6 @@ impl<'data> SectionHeaders<'data> {
             headers
         }
     }
-
 }
 
 #[derive(Clone)]

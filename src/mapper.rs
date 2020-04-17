@@ -1,3 +1,7 @@
+//! This module supports parsing DWARF sections
+//! of an executable and exposes the relevant information
+//! for producing a map file.
+
 use gimli::constants::{DW_AT_name, DW_AT_type, DW_TAG_member, DW_TAG_typedef, DW_AT_location,
                        DW_TAG_structure_type, DW_AT_data_member_location, DW_TAG_variable, DW_TAG_base_type};
 use gimli::{AttributeValue, Encoding, Location, CompilationUnitHeader};

@@ -1,3 +1,9 @@
+//! This module implements the JSON file format for 
+//! the map files used at BPS Uster and allows
+//! serializing from the `Mapper` interface to
+//! a JSON map file.
+
+
 use crate::mapper::{Mapper, StructMember};
 
 use serde::{Deserialize, Serialize};

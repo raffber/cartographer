@@ -18,6 +18,9 @@ mod parse;
 mod mapper;
 mod mapfile;
 
+/// This is used as an adapter between Gimli to simplify
+/// it's usage. The whole data can thus be read into
+/// a byte array and exposed over `ByteVec` to `Gimli`.
 #[derive(Clone, Debug)]
 pub struct ByteVec(Arc<Vec<u8>>);
 
@@ -52,6 +55,7 @@ fn empty_reader() -> Reader {
     Reader::new(ByteVec::new(), LittleEndian::default())
 }
 
+/// Adapter to interface CoffFiles to the gimli API
 fn get_section_data(obj: &CoffFile, id: SectionId) -> Result<Reader, &'static str> {
     let ret = obj
         .get_section(id.name())
@@ -91,6 +95,7 @@ fn produce_map(input_file: PathBuf, output_file: PathBuf, pretty: bool) {
     let mut outfile = File::create(output_file).expect("Cannot create output file");
     outfile.write_all(serialized.as_bytes()).expect("Cannot write to output file");
 }
+
 
 fn main() {
     let matches = App::new("cartographer - Produce map files like its 1999")
